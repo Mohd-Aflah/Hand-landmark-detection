@@ -5,7 +5,10 @@
 
 ## 🎥 Demo Video
 
-▶️ [Watch the demo](documents/Hand&20Land%20Mark%20Detection.mp4)
+[![Watch the demo](screenshots/screenshot1.png)](documents/Hand%20Land%20Mark%20Detection.mp4)
+
+📹 Demo Video:  
+[Click to Download and Watch](documents/Hand%20Land%20Mark%20Detection.mp4)
 
 ---
 
