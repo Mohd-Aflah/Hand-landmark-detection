@@ -5,17 +5,17 @@
 
 ## 🎥 Demo Video
 
-[Watch the demo](documents/Hand&20Land%20Mark%20Detection.mp4)
+▶️ [Watch the demo](documents/Hand&20Land%20Mark%20Detection.mp4)
 
 ---
 
 ## 📸 Screenshots
 
-<img src="documents/Screenshot 2025-05-16 041724.png" width="600"/>
+<img src="documents/Screenshot 2025-05-16 041724.png" width="400"/>
 <br>
-<img src="documents/Screenshot 2025-05-16 041724.png" width="600"/>
+<img src="documents/Screenshot 2025-05-16 041724.png" width="400"/>
 <br>
-<img src="documents/Screenshot 2025-05-16 041724.png" width="600"/>
+<img src="documents/Screenshot 2025-05-16 041724.png" width="400"/>
 
 ---
 
