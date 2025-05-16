@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hand Landmark Detection Project</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+  <header class="header">
+    <div class="container">
+      <h1>🖐️ Hand Landmark Detection Using OpenCV & MediaPipe</h1>
+      <p>A Real-Time Finger Counting & Gesture Recognition System</p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Video & Finger Count -->
+    <section class="video-section">
+      <div class="video-container">
+        <img src="{{ url_for('video_feed') }}" alt="Live Video Stream" />
+      </div>
+      <div class="info-container">
+        <h1>Live Finger Count</h1>
+        <div id="finger-count" class="count-animate">Loading...</div>
+      </div>
+    </section>
+
+    <!-- Project Abstract -->
+    <section class="card-section">
+      <h2>📘 Abstract</h2>
+      <p>
+        This project implements a real-time hand landmark detection and finger counting system leveraging OpenCV and Google’s MediaPipe.
+        It tracks 21 hand landmarks to accurately count fingers, enabling applications such as gesture control, sign language interpretation,
+        and enhanced human-computer interaction on standard webcams.
+      </p>
+    </section>
+
+    <!-- Key Features -->
+    <section class="card-section">
+      <h2>🎯 Key Features</h2>
+      <ul>
+        <li>Real-time detection of hand landmarks with 21 key points</li>
+        <li>Accurate finger counting using landmark comparisons</li>
+        <li>Robust hand tracking with MediaPipe’s ML pipeline</li>
+        <li>Flask-powered web interface for live streaming and count display</li>
+        <li>Responsive UI and lightweight design compatible with standard laptops</li>
+      </ul>
+    </section>
+
+    <!-- Technologies Used -->
+    <section class="card-section">
+      <h2>🧰 Technologies Used</h2>
+      <div class="tech-tags">
+        <span>Python</span>
+        <span>OpenCV</span>
+        <span>MediaPipe</span>
+        <span>Flask</span>
+        <span>HTML5</span>
+        <span>CSS3</span>
+        <span>JavaScript</span>
+      </div>
+    </section>
+
+    <!-- Applications -->
+    <section class="card-section">
+      <h2>💡 Applications</h2>
+      <ul>
+        <li>Touchless gesture control interfaces</li>
+        <li>Sign language translation systems</li>
+        <li>Virtual Reality (VR) and Augmented Reality (AR) interaction</li>
+        <li>Assistive technology for differently-abled users</li>
+        <li>Gaming and interactive media control</li>
+      </ul>
+    </section>
+
+    <!-- Limitations -->
+    <section class="card-section">
+      <h2>⚠️ Limitations</h2>
+      <ul>
+        <li>Detection accuracy can drop in low-light or cluttered backgrounds</li>
+        <li>Difficulty tracking overlapping or multiple hands simultaneously</li>
+        <li>Dependent on webcam quality and frame rate</li>
+      </ul>
+    </section>
+
+    <!-- Future Scope -->
+    <section class="card-section">
+      <h2>🚀 Future Scope</h2>
+      <ul>
+        <li>Adding complex gesture recognition and classification</li>
+        <li>Multi-hand simultaneous detection and tracking</li>
+        <li>Integration with voice and eye-tracking systems</li>
+        <li>Deploying mobile and embedded system versions</li>
+      </ul>
+    </section>
+
+    <!-- Developers -->
+    <section class="card-section">
+      <h2>👨‍💻 Developers</h2>
+      <div class="dev-grid">
+        <div class="dev-card">
+          <h3>Mohammed Aflah</h3>
+          <p>Coordinator & Backend Developer</p>
+        </div>
+        <div class="dev-card">
+          <h3>Minhaj Akavalappil</h3>
+          <p>Frontend & UI Designer</p>
+        </div>
+        <div class="dev-card">
+          <h3>Mohammed Aseel</h3>
+          <p>OpenCV & MediaPipe Integration</p>
+        </div>
+        <div class="dev-card">
+          <h3>Mohammed Jasim A.</h3>
+          <p>Testing & Documentation</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>© 2024 MEA Engineering College — Department of Computer Science & Engineering</p>
+  </footer>
+
+  <script>
+    const countElement = document.getElementById("finger-count");
+    const eventSource = new EventSource("/count");
+    eventSource.onmessage = function(event) {
+      countElement.textContent = event.data;
+    };
+  </script>
+
+</body>
+</html>
