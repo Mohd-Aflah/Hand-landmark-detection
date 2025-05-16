@@ -3,12 +3,9 @@
 
 ---
 
-## 🎥 Demo Video
-
-[![Watch the demo](screenshots/screenshot1.png)](documents/Hand%20Land%20Mark%20Detection.gif)
 
 📹 Demo Video:  
-[Click to Download and Watch](documents/Hand%20Land%20Mark%20Detection.gif)
+[Click to Download and Watch](documents/Hand%20Land%20Mark%20Detection.mp4)
 
 ---
 
@@ -16,9 +13,9 @@
 
 <img src="documents/Screenshot 2025-05-16 041724.png" width="400"/>
 <br>
-<img src="documents/Screenshot 2025-05-16 041724.png" width="400"/>
+<img src="documents/Screenshot 2025-05-16 041751.png" width="400"/>
 <br>
-<img src="documents/Screenshot 2025-05-16 041724.png" width="400"/>
+<img src="documents/Screenshot 2025-05-16 042303.png" width="400"/>
 
 ---
 
