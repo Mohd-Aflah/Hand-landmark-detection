@@ -1,5 +1,5 @@
-# 🖥️ [Live Demo Website](https://mohd-aflah.github.io/Hand-landmark-detection/)  
-> Real-Time Hand Gesture Finger Counting using Flask, OpenCV & MediaPipe
+# 🖥️ [Live Demo Website](https://hand-landmark-detection.onrender.com/)  
+> Real-Time Hand Gesture Finger Counting using MediaPipe JS, WebRTC & Flask
 
 ---
 
@@ -21,35 +21,33 @@
 
 ## 📌 Project Overview
 
-This project is a real-time hand gesture recognition system built using **Flask**, **OpenCV**, and **MediaPipe**, designed to count the number of fingers shown in front of a webcam and display it dynamically in a web interface.
+This project is a real-time hand gesture recognition system designed to count the number of fingers shown in front of a webcam and display it dynamically in a web interface.
 
-It leverages MediaPipe's landmark tracking to recognize hand landmarks, and Flask streams the annotated camera feed to a web interface using MJPEG and Server-Sent Events (SSE).
+It leverages **MediaPipe JS** for high-speed, zero-latency landmark tracking directly within the user's web browser. The frontend captures the camera feed securely using HTML5 WebRTC, processes it locally on the client-side for maximum privacy and performance, and **Flask** handles serving the web application.
 
 ---
 
 ## 🧪 Technologies Used
 
-- 🐍 Python 3
-- 🧠 MediaPipe (Hand Landmarks)
-- 🎥 OpenCV (Video Capture)
-- 🌐 Flask (Web Application Framework)
-- 📡 JavaScript (SSE for real-time finger count updates)
+- 🌐 **MediaPipe JS** (In-Browser Hand Landmark Tracking & Drawing)
+- 📡 **JavaScript / WebRTC** (Secure local camera capture)
+- 🎨 **HTML5 Canvas & CSS3** (Real-time video rendering & UI)
+- 🐍 **Python 3 & Flask** (Web Application Serving)
+- ☁️ **Render** (Cloud Deployment)
 
 ---
 
 ## 🖐️ How It Works
 
-1. **Webcam** captures live feed using OpenCV.
-2. **MediaPipe Hands** processes frames and detects hand landmarks.
+1. **Webcam** captures live feed locally via the browser using HTML5 WebRTC (`navigator.mediaDevices.getUserMedia`).
+2. **MediaPipe Hands JS** processes the frames entirely on the client-side, identifying 21 3D hand landmarks in real-time at 60 FPS.
 3. **Finger counting logic** uses relative positions of landmarks to count raised fingers:
    - Compares thumb's x-coordinate depending on left/right hand
    - Compares each fingertip’s y-coordinate with its PIP joint
-4. **Flask**:
-   - Streams annotated frames via `/video_feed`
-   - Sends finger count updates via `/count` using Server-Sent Events
-5. **Frontend (HTML/JS)**:
-   - Shows video feed
-   - Displays real-time finger count next to the video
+4. **HTML5 Canvas**:
+   - Renders the mirrored camera feed and draws the landmark skeleton over the hand.
+5. **Flask Backend**:
+   - Serves the frontend assets cleanly and securely, allowing the app to be easily deployed to cloud platforms like Render without needing heavy server-side GPU processing.
 
 ---
 
@@ -69,7 +67,7 @@ It leverages MediaPipe's landmark tracking to recognize hand landmarks, and Flas
 1. ✅ **Install required packages**:
 
 ```bash
-pip install flask opencv-python mediapipe numpy
+pip install flask gunicorn
 ```
 
 2. ✅ **Make sure your folder has this structure**:
