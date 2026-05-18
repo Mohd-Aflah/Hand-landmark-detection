@@ -1,19 +1,21 @@
-from flask import Flask, render_template, Response
+import os
+import base64
+from flask import Flask, render_template, request, jsonify
 import cv2
 import mediapipe as mp
 import numpy as np
-import threading
 
 app = Flask(__name__)
 
-# MediaPipe hands setup
+# MediaPipe hands setup (instantiated globally to be reused across requests)
 mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(
+    static_image_mode=False, 
+    max_num_hands=2,
+    min_detection_confidence=0.7,
+    min_tracking_confidence=0.6
+)
 mp_drawing = mp.solutions.drawing_utils
-
-# Shared resources
-frame_lock = threading.Lock()
-shared_frame = None
-shared_count = 0
 
 def count_fingers(hand_landmarks, hand_label):
     """
@@ -37,69 +39,48 @@ def count_fingers(hand_landmarks, hand_label):
 
     return fingers.count(True)
 
-def capture_and_process_frames():
-    global shared_frame, shared_count, frame_lock
-
-    cap = cv2.VideoCapture(0)
-    with mp_hands.Hands(
-        max_num_hands=2,
-        min_detection_confidence=0.7,
-        min_tracking_confidence=0.6
-    ) as hands:
-        while cap.isOpened():
-            success, frame = cap.read()
-            if not success:
-                break
-
-            frame = cv2.flip(frame, 1)
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = hands.process(frame_rgb)
-
-            finger_count = 0
-            if results.multi_hand_landmarks and results.multi_handedness:
-                for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
-                    mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-                    label = handedness.classification[0].label  # 'Left' or 'Right'
-                    finger_count += count_fingers(hand_landmarks, label)
-
-            # Update shared data
-            with frame_lock:
-                shared_frame = frame.copy()
-                shared_count = finger_count
-
-        cap.release()
-
-def generate_video_stream():
-    global shared_frame, frame_lock
-    while True:
-        with frame_lock:
-            if shared_frame is not None:
-                success, encoded_image = cv2.imencode('.jpg', shared_frame)
-                if success:
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + 
-                           encoded_image.tobytes() + b'\r\n')
-
-def generate_finger_count():
-    global shared_count
-    while True:
-        yield f"data: {shared_count}\n\n"
-
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_video_stream(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/process_frame', methods=['POST'])
+def process_frame():
+    try:
+        # Get the base64 encoded image from the client
+        data = request.json['image']
+        
+        # Remove the 'data:image/jpeg;base64,' prefix
+        encoded_data = data.split(',')[1]
+        
+        # Convert base64 string to numpy array and decode image
+        nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-@app.route('/count')
-def count():
-    return Response(generate_finger_count(), mimetype='text/event-stream')
+        # Process the frame
+        frame = cv2.flip(frame, 1) # Flip horizontally for selfie view
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = hands.process(frame_rgb)
+
+        finger_count = 0
+        if results.multi_hand_landmarks and results.multi_handedness:
+            for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+                mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+                label = handedness.classification[0].label  # 'Left' or 'Right'
+                finger_count += count_fingers(hand_landmarks, label)
+
+        # Encode the processed frame back to base64
+        _, buffer = cv2.imencode('.jpg', frame)
+        encoded_img = base64.b64encode(buffer).decode('utf-8')
+
+        return jsonify({
+            'image': 'data:image/jpeg;base64,' + encoded_img,
+            'count': finger_count
+        })
+        
+    except Exception as e:
+        print("Error processing frame:", e)
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    thread = threading.Thread(target=capture_and_process_frames)
-    thread.daemon = True
-    thread.start()
-    app.run(debug=True, threaded=True, use_reloader=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

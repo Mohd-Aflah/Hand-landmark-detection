@@ -20,11 +20,14 @@
     <!-- Video & Finger Count -->
     <section class="video-section">
       <div class="video-container">
-        <img src="{{ url_for('video_feed') }}" alt="Live Video Stream" />
+        <img id="processed-image" src="" alt="Live Video Stream" style="display:none;" />
+        <div id="loading-msg" style="padding: 2rem; color: #283593; font-weight: bold; text-align: center;">
+          Requesting camera access...<br>Please allow camera permissions in your browser.
+        </div>
       </div>
       <div class="info-container">
         <h1>Live Finger Count</h1>
-        <div id="finger-count" class="count-animate">Loading...</div>
+        <div id="finger-count" class="count-animate">0</div>
       </div>
     </section>
 
@@ -127,11 +130,74 @@
   </footer>
 
   <script>
+    const video = document.createElement('video');
+    video.setAttribute('autoplay', '');
+    video.setAttribute('playsinline', '');
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const processedImg = document.getElementById('processed-image');
+    const loadingMsg = document.getElementById('loading-msg');
     const countElement = document.getElementById("finger-count");
-    const eventSource = new EventSource("/count");
-    eventSource.onmessage = function(event) {
-      countElement.textContent = event.data;
-    };
+
+    let isProcessing = false;
+
+    // Ask user for camera permission and start video stream
+    navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
+      .then((stream) => {
+          video.srcObject = stream;
+          video.play();
+          
+          video.onloadeddata = () => {
+              loadingMsg.style.display = 'none';
+              processedImg.style.display = 'block';
+              sendFrame(); // Start processing loop
+          };
+      })
+      .catch((err) => {
+          loadingMsg.innerHTML = "❌ Error accessing camera.<br>Please allow camera permissions in your browser to use this feature.";
+          console.error("Camera access error:", err);
+      });
+
+    // Send video frame to Flask backend for MediaPipe processing
+    async function sendFrame() {
+        if (isProcessing) return; // Wait until previous frame is fully processed
+        isProcessing = true;
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            // Draw current video frame to canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Compress the image (0.6 quality) to save bandwidth
+            const dataURL = canvas.toDataURL('image/jpeg', 0.6);
+            
+            try {
+                const response = await fetch('/process_frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dataURL })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.image) {
+                        // Display the processed image with drawn landmarks
+                        processedImg.src = result.image;
+                        countElement.textContent = result.count;
+                    }
+                }
+            } catch (e) {
+                console.error("Error sending frame:", e);
+            }
+        }
+        
+        isProcessing = false;
+        // Schedule next frame
+        requestAnimationFrame(sendFrame);
+    }
   </script>
 
 </body>
