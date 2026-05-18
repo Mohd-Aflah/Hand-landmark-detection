@@ -5,12 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hand Landmark Detection Project</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  
+  <!-- MediaPipe Libraries for robust Browser-side tracking -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
   <header class="header">
     <div class="container">
-      <h1>🖐️ Hand Landmark Detection Using OpenCV & MediaPipe</h1>
+      <h1>🖐️ Hand Landmark Detection Using MediaPipe</h1>
       <p>A Real-Time Finger Counting & Gesture Recognition System</p>
     </div>
   </header>
@@ -19,10 +25,14 @@
 
     <!-- Video & Finger Count -->
     <section class="video-section">
-      <div class="video-container">
-        <img id="processed-image" src="" alt="Live Video Stream" style="display:none;" />
-        <div id="loading-msg" style="padding: 2rem; color: #283593; font-weight: bold; text-align: center;">
-          Requesting camera access...<br>Please allow camera permissions in your browser.
+      <div class="video-container" style="position: relative;">
+        <!-- Hidden video element for camera capture -->
+        <video id="webcam" autoplay playsinline style="display:none;"></video>
+        <!-- Canvas to display video and landmarks, horizontally flipped for a mirror effect -->
+        <canvas id="output-canvas" width="640" height="480" style="border-radius: 12px; border: 5px solid #3949ab; width: 100%; max-width: 640px; transform: scaleX(-1); background-color: #000;"></canvas>
+        
+        <div id="loading-msg" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: bold; text-align: center; font-size: 1.2rem; width: 80%; background: rgba(0,0,0,0.7); padding: 1.5rem; border-radius: 8px;">
+          Starting Camera & AI Model...<br><span style="font-size:0.9rem; font-weight:normal;">Please allow camera permissions</span>
         </div>
       </div>
       <div class="info-container">
@@ -35,9 +45,9 @@
     <section class="card-section">
       <h2>📘 Abstract</h2>
       <p>
-        This project implements a real-time hand landmark detection and finger counting system leveraging OpenCV and Google’s MediaPipe.
+        This project implements a real-time hand landmark detection and finger counting system leveraging Google’s MediaPipe AI.
         It tracks 21 hand landmarks to accurately count fingers, enabling applications such as gesture control, sign language interpretation,
-        and enhanced human-computer interaction on standard webcams.
+        and enhanced human-computer interaction right in your web browser.
       </p>
     </section>
 
@@ -45,11 +55,11 @@
     <section class="card-section">
       <h2>🎯 Key Features</h2>
       <ul>
-        <li>Real-time detection of hand landmarks with 21 key points</li>
-        <li>Accurate finger counting using landmark comparisons</li>
-        <li>Robust hand tracking with MediaPipe’s ML pipeline</li>
-        <li>Flask-powered web interface for live streaming and count display</li>
-        <li>Responsive UI and lightweight design compatible with standard laptops</li>
+        <li>Real-time detection of hand landmarks with 21 key points directly in the browser</li>
+        <li>Accurate finger counting using landmark geometry comparisons</li>
+        <li>Robust multi-hand tracking with MediaPipe’s ML pipeline</li>
+        <li>Zero latency: Processes video securely on your device without sending images to a server</li>
+        <li>Responsive UI and lightweight design compatible with standard laptops and mobile devices</li>
       </ul>
     </section>
 
@@ -57,11 +67,9 @@
     <section class="card-section">
       <h2>🧰 Technologies Used</h2>
       <div class="tech-tags">
-        <span>Python</span>
-        <span>OpenCV</span>
-        <span>MediaPipe</span>
-        <span>Flask</span>
-        <span>HTML5</span>
+        <span>MediaPipe JS</span>
+        <span>Python Flask (Serving)</span>
+        <span>HTML5 Canvas</span>
         <span>CSS3</span>
         <span>JavaScript</span>
       </div>
@@ -130,74 +138,100 @@
   </footer>
 
   <script>
-    const video = document.createElement('video');
-    video.setAttribute('autoplay', '');
-    video.setAttribute('playsinline', '');
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    const processedImg = document.getElementById('processed-image');
+    const videoElement = document.getElementById('webcam');
+    const canvasElement = document.getElementById('output-canvas');
+    const canvasCtx = canvasElement.getContext('2d');
     const loadingMsg = document.getElementById('loading-msg');
-    const countElement = document.getElementById("finger-count");
+    const countElement = document.getElementById('finger-count');
 
-    let isProcessing = false;
+    // Logic to count fingers using landmark coordinates
+    function countFingers(landmarks, handedness) {
+        let count = 0;
+        
+        // Thumb logic
+        // Because of the mirror view logic, Left/Right mapping handles the relative x-axis checks
+        if (handedness === "Right") {
+            if (landmarks[4].x < landmarks[3].x) count++;
+        } else { // Left
+            if (landmarks[4].x > landmarks[3].x) count++;
+        }
+        
+        // Other 4 fingers
+        const tips = [8, 12, 16, 20];
+        const pips = [6, 10, 14, 18];
+        for (let i = 0; i < 4; i++) {
+            if (landmarks[tips[i]].y < landmarks[pips[i]].y) count++;
+        }
+        
+        return count;
+    }
 
-    // Ask user for camera permission and start video stream
-    navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
-      .then((stream) => {
-          video.srcObject = stream;
-          video.play();
-          
-          video.onloadeddata = () => {
-              loadingMsg.style.display = 'none';
-              processedImg.style.display = 'block';
-              sendFrame(); // Start processing loop
-          };
-      })
-      .catch((err) => {
-          loadingMsg.innerHTML = "❌ Error accessing camera.<br>Please allow camera permissions in your browser to use this feature.";
-          console.error("Camera access error:", err);
-      });
+    // This function is called every time a frame is processed by MediaPipe
+    function onResults(results) {
+        // Hide loading screen when AI starts predicting
+        if (loadingMsg.style.display !== 'none') {
+            loadingMsg.style.display = 'none';
+        }
 
-    // Send video frame to Flask backend for MediaPipe processing
-    async function sendFrame() {
-        if (isProcessing) return; // Wait until previous frame is fully processed
-        isProcessing = true;
-
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            // Draw current video frame to canvas
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Compress the image (0.6 quality) to save bandwidth
-            const dataURL = canvas.toDataURL('image/jpeg', 0.6);
-            
-            try {
-                const response = await fetch('/process_frame', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: dataURL })
-                });
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        
+        // Draw the raw camera frame to the canvas
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+        
+        let totalFingers = 0;
+        
+        // Draw the landmarks and count fingers
+        if (results.multiHandLandmarks && results.multiHandedness) {
+            for (let index = 0; index < results.multiHandLandmarks.length; index++) {
+                const landmarks = results.multiHandLandmarks[index];
+                // "Left" or "Right"
+                const handedness = results.multiHandedness[index].label; 
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.image) {
-                        // Display the processed image with drawn landmarks
-                        processedImg.src = result.image;
-                        countElement.textContent = result.count;
-                    }
-                }
-            } catch (e) {
-                console.error("Error sending frame:", e);
+                // Draw skeleton over the hand
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+                drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1, radius: 3});
+                
+                // Add to total finger count
+                totalFingers += countFingers(landmarks, handedness);
             }
         }
         
-        isProcessing = false;
-        // Schedule next frame
-        requestAnimationFrame(sendFrame);
+        // Update UI
+        countElement.textContent = totalFingers;
+        canvasCtx.restore();
     }
+
+    // Initialize MediaPipe Hands library natively in the browser
+    const hands = new Hands({locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    }});
+    
+    hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.6
+    });
+    
+    // Bind the results to our processing function
+    hands.onResults(onResults);
+
+    // Initialize Camera WebRTC
+    const camera = new Camera(videoElement, {
+        onFrame: async () => {
+            // Send each video frame securely directly to MediaPipe in the browser
+            await hands.send({image: videoElement});
+        },
+        width: 640,
+        height: 480
+    });
+    
+    // Start camera
+    camera.start().catch((err) => {
+        loadingMsg.innerHTML = "❌ Error accessing camera.<br><span style='font-size:0.9rem'>Please allow permissions and ensure your browser supports WebRTC.</span>";
+        console.error(err);
+    });
   </script>
 
 </body>
